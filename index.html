@@ -135,3 +135,29 @@
   </script>
 </body>
 </html>
+
+
+<!-- Base64 변환기 UI -->
+<div style="margin-top: 40px;">
+  <h2>🔧 QR 코드 → Base64 변환기</h2>
+  <textarea id="qrRaw" rows="4" cols="50" placeholder="QR 코드 원문을 여기에 붙여넣으세요"></textarea><br>
+  <button onclick="convertToBase64()">Base64로 변환</button>
+  <p><strong>Base64 결과:</strong></p>
+  <div id="base64Output" style="word-break: break-all; background:#fff; padding:10px; border-radius:10px; box-shadow:0 0 4px rgba(0,0,0,0.1); max-width:500px; margin:0 auto;"></div>
+</div>
+
+<script>
+  function convertToBase64() {
+    const input = document.getElementById('qrRaw').value.trim();
+    if (!input) {
+      alert("QR 코드를 입력해주세요.");
+      return;
+    }
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(input)));
+      document.getElementById("base64Output").innerText = encoded;
+    } catch (e) {
+      alert("Base64 변환 중 오류 발생: " + e.message);
+    }
+  }
+</script>
