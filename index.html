@@ -2,28 +2,48 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>포켓몬 QR 정보</title>
+  <title>포켓몬 가오레 도감</title>
   <style>
-    #reader {
-      width: 300px;
-      margin: 20px auto;
-    }
-    #result {
-      margin-top: 20px;
+    body {
+      font-family: 'Arial';
       text-align: center;
+      background-color: #f2f2f2;
     }
-    img {
-      width: 200px;
+    .scanner {
+      margin: 20px auto;
+      max-width: 400px;
+    }
+    #reader {
+      width: 100%;
+    }
+    .pokemon-card {
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 400px;
+    }
+    .pokemon-card img {
+      width: 100%;
+      border-radius: 12px;
+    }
+    .info {
+      text-align: left;
+      margin-top: 10px;
     }
   </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
-  <h1 style="text-align: center;">포켓몬 가오레 정보</h1>
-  <div id="reader"></div>
-  <div id="result"></div>
+  <h1>📱 QR로 포켓몬 불러오기</h1>
+  <div class="scanner">
+    <div id="reader"></div>
+  </div>
+  <div id="result" class="pokemon-card" style="display:none"></div>
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
+    // 포켓몬 정보 데이터
     const pokemonData = {
       "eevee": {
         name: "이브이",
@@ -42,70 +62,66 @@
       }
     };
 
-    // QR 코드 바이너리 → 키 값 매핑
+    // QR Base64 → 포켓몬 키 매핑
     const qrToPokemonId = {
-     `)ɑ������=��<��\\��G{��Џ��5�jP?�h/�̦��yR�U�T�
-���WJ|<e�RZ$Z��8����1l�M
-Z�p3�si��kr�2��`: "eevee"
+      "KSnCqsbsmKXrpGzrpqw8ruwgXFxcp7AZeyrsn6snNSXsnYD8r2gvrrGmrr3ZUiBVxJTtCgrDsnVq8PGVSWiRaJJabzjqsKHsiGzssnFbcuwTQpab3Azc3NpyKTrpqty4reuwqA==": "eevee"
     };
 
+    // 포켓몬 정보 표시
     function showPokemon(key) {
-      const data = pokemonData[key];
-      if (!data) {
-        document.getElementById("result").innerHTML = "<p>포켓몬 데이터를 찾을 수 없습니다.</p>";
-        return;
-      }
-
+      const poke = pokemonData[key];
+      if (!poke) return;
+      document.getElementById("result").style.display = 'block';
       document.getElementById("result").innerHTML = `
-        <h2>${data.name}</h2>
-        <p>코드: ${data.code}</p>
-        <p>에너지: ${data.energy}</p>
-        <p>기술: ${data.move}</p>
-        <p>타입: ${data.type}</p>
-        <img src="${data.image}" alt="${data.name}" />
-        <h3>능력치</h3>
-        <ul>
-          <li>HP: ${data.stats.HP}</li>
-          <li>특수공격: ${data.stats["특수공격"]}</li>
-          <li>방어: ${data.stats["방어"]}</li>
-          <li>특수방어: ${data.stats["특수방어"]}</li>
-          <li>스피드: ${data.stats["스피드"]}</li>
-        </ul>
+        <img src="${poke.image}" alt="${poke.name}" />
+        <div class="info">
+          <h2>${poke.name}</h2>
+          <p><strong>코드:</strong> ${poke.code}</p>
+          <p><strong>에너지:</strong> ${poke.energy}</p>
+          <p><strong>기술:</strong> ${poke.move}</p>
+          <p><strong>타입:</strong> ${poke.type}</p>
+          <p><strong>스탯:</strong><br>
+            HP: ${poke.stats.HP}, 특수공격: ${poke.stats["특수공격"]}, 방어: ${poke.stats["방어"]},<br>
+            특수방어: ${poke.stats["특수방어"]}, 스피드: ${poke.stats["스피드"]}
+          </p>
+        </div>
       `;
     }
 
+    // QR 결과 → Base64 → 포켓몬 키 매칭
     function showPokemonByQR(qrData) {
-      const matchedKey = qrToPokemonId[qrData];
+      const encoded = btoa(unescape(encodeURIComponent(qrData))); // Base64 인코딩
+      const matchedKey = qrToPokemonId[encoded];
       if (matchedKey) {
         showPokemon(matchedKey);
       } else {
+        document.getElementById("result").style.display = 'block';
         document.getElementById("result").innerHTML = "<p>등록되지 않은 QR 코드입니다.</p>";
       }
     }
 
+    // QR 스캐너 실행
     const html5QrCode = new Html5Qrcode("reader");
 
-    Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
         html5QrCode.start(
           { facingMode: "environment" },
           {
             fps: 10,
-            qrbox: 250
+            qrbox: { width: 250, height: 250 }
           },
           qrCodeMessage => {
-            console.log(`QR Code detected: ${qrCodeMessage}`);
+            console.log("QR Code detected:", qrCodeMessage);
             showPokemonByQR(qrCodeMessage.trim());
-            html5QrCode.stop(); // 스캔 완료 후 멈추기
+            html5QrCode.stop();
           },
           errorMessage => {
-            // 무시: 인식 실패는 자주 발생함
+            // 인식 실패는 무시
           }
-        );
+        ).catch(err => console.error("QR Start Error", err));
       }
-    }).catch(err => {
-      console.error("카메라 접근 실패", err);
-    });
+    }).catch(err => console.error("Camera Error", err));
   </script>
 </body>
 </html>
