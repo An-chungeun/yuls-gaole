@@ -1,152 +1,66 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>포켓몬 가오레 도감</title>
+  <meta charset="UTF-8" />
+  <title>포켓몬 카드 정보 조회</title>
   <style>
-    body {
-      font-family: 'Arial';
-      text-align: center;
-      background-color: #f2f2f2;
-    }
-    .scanner, .tool {
-      margin: 20px auto;
-      max-width: 400px;
-    }
-    #reader {
-      width: 100%;
-      margin-top: 10px;
-    }
-    .pokemon-card {
-      margin: 20px auto;
-      padding: 20px;
-      border-radius: 16px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      max-width: 400px;
-    }
-    .pokemon-card img {
-      width: 100%;
-      border-radius: 12px;
-    }
-    .info {
-      text-align: left;
-      margin-top: 10px;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    label, input { display: block; margin-bottom: 10px; }
   </style>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
-  <h1>📱 QR로 포켓몬 불러오기</h1>
-  
-   <!-- 추가된 버튼 -->
-  <div class="tool">
-    <a href="qr_tool.html">
-      <button>🔧 QR 등록 툴로 이동</button>
-    </a>
-  </div>
+  <h1>포켓몬 카드 조회</h1>
 
-  <div class="scanner">
-    <button onclick="startScanner()">QR 인식 시작</button>
-    <div id="reader" style="display:none;"></div>
-  </div>
-  
-  <div class="scanner">
-    <button onclick="startScanner()">QR 인식 시작</button>
-    <div id="reader" style="display:none;"></div>
-  </div>
-  <div id="result" class="pokemon-card" style="display:none"></div>
+  <label for="qrInput">QR 코드 (또는 카드 ID) 입력:</label>
+  <input type="text" id="qrInput" placeholder="예: CP(05-028) KO" />
+  <button onclick="lookupPokemon()">조회</button>
+
+  <div id="result"></div>
 
   <script>
-    const pokemonData = {};
-    const qrToPokemonId = {};
-    let html5QrCode;
+    let pokemonData = [];
 
-    fetch('gaoleQR.csv')
+    // CSV 로드
+    fetch("data.csv")
       .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          complete: function(results) {
-            results.data.forEach(row => {
-              qrToPokemonId[row.qr] = row.engname;
-              pokemonData[row.engname] = {
-                name: row.name,
-                code: row.code,
-                energy: parseInt(row.energy),
-                move: row.move,
-                type: row.type,
-                stats: {
-                  HP: parseInt(row.hp),
-                  특수공격: parseInt(row.spa),
-                  방어: parseInt(row.def),
-                  특수방어: parseInt(row.spd),
-                  스피드: parseInt(row.spe)
-                },
-                image: row.img
-              };
+      .then(csv => {
+        const lines = csv.split("\n");
+        const headers = lines[0].split(",");
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i].split(",");
+          if (row.length === headers.length) {
+            const entry = {};
+            headers.forEach((h, idx) => {
+              entry[h.trim()] = row[idx].trim();
             });
+            pokemonData.push(entry);
           }
-        });
+        }
       });
 
-    function showPokemon(key) {
-      const poke = pokemonData[key];
-      if (!poke) return;
-      document.getElementById("result").style.display = 'block';
-      document.getElementById("result").innerHTML = `
-        <img src="${poke.image}" alt="${poke.name}" />
-        <div class="info">
-          <h2>${poke.name}</h2>
-          <p><strong>코드:</strong> ${poke.code}</p>
-          <p><strong>에너지:</strong> ${poke.energy}</p>
-          <p><strong>기술:</strong> ${poke.move}</p>
-          <p><strong>타입:</strong> ${poke.type}</p>
-          <p><strong>스탯:</strong><br>
-            HP: ${poke.stats.HP}, 특수공격: ${poke.stats["특수공격"]}, 방어: ${poke.stats["방어"]},<br>
-            특수방어: ${poke.stats["특수방어"]}, 스피드: ${poke.stats["스피드"]}
-          </p>
-        </div>
-      `;
-    }
+    // 조회 함수
+    function lookupPokemon() {
+      const input = document.getElementById("qrInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      const found = pokemonData.find(p => p["카드ID"] === input);
 
-    function showPokemonByQR(qrData) {
-      const encoded = btoa(unescape(encodeURIComponent(qrData)));
-      const matchedKey = qrToPokemonId[encoded];
-      if (matchedKey) {
-        showPokemon(matchedKey);
+      if (found) {
+        resultDiv.innerHTML = `
+          <h2>${found["이름"]}</h2>
+          <ul>
+            <li><strong>에너지:</strong> ${found["에너지"]}</li>
+            <li><strong>기술:</strong> ${found["기술"]}</li>
+            <li><strong>HP:</strong> ${found["HP"]}</li>
+            <li><strong>공격:</strong> ${found["특수공격"]}</li>
+            <li><strong>방어:</strong> ${found["방어"]}</li>
+            <li><strong>특수방어:</strong> ${found["특수방어"]}</li>
+            <li><strong>스피드:</strong> ${found["스피드"]}</li>
+          </ul>
+        `;
       } else {
-        document.getElementById("result").style.display = 'block';
-        document.getElementById("result").innerHTML = "<p>등록되지 않은 QR 코드입니다.</p>";
+        resultDiv.innerHTML = `<p>일치하는 포켓몬 정보를 찾을 수 없습니다.</p>`;
       }
-    }
-
-    function startScanner() {
-      const reader = document.getElementById("reader");
-      reader.style.display = "block";
-
-      html5QrCode = new Html5Qrcode("reader");
-
-      Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-          html5QrCode.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 }
-            },
-            qrCodeMessage => {
-              showPokemonByQR(qrCodeMessage.trim());
-              html5QrCode.stop();
-              reader.style.display = "none";
-            },
-            errorMessage => {
-              // 인식 실패 무시
-            }
-          ).catch(err => console.error("QR Start Error", err));
-        }
-      }).catch(err => console.error("Camera Error", err));
     }
   </script>
 </body>
