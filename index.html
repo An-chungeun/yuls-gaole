@@ -27,7 +27,7 @@
   <script>
     let pokemonData = [];
 
-    // CSV 불러오기
+    // CSV 로드
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -45,10 +45,11 @@
         }
       });
 
-    // HEX로 조회
+    // 포켓몬 정보 조회
     function lookupPokemonById(qrHex) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["qr_id"] === qrHex.toLowerCase());
+      console.log("찾는 QR HEX:", qrHex);  // ✅ 콘솔 출력 확인용
+      const found = pokemonData.find(p => p["qr_id"].toLowerCase() === qrHex.toLowerCase());
 
       if (found) {
         resultDiv.innerHTML = `
@@ -93,15 +94,17 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              // ✅ QR binary → hex 변환
               const binary = decodedResult.binaryData;
               const hex = toHexFromBinary(binary);
-              console.log("QR HEX:", hex);
+
+              console.log("📦 QR 코드 HEX 값:", hex);  // ✅ 콘솔에 hex 찍힘
               lookupPokemonById(hex);
             },
-            err => {}
+            err => {
+              console.warn("QR 인식 실패:", err);
+            }
           ).catch(err => {
-            console.error("카메라 시작 실패", err);
+            console.error("카메라 시작 실패:", err);
           });
         }
       });
