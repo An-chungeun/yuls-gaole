@@ -5,7 +5,7 @@
   <title>포켓몬 카드 정보 조회</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    #result, #qrHexOutput {
+    #result, #qrTextOutput {
       margin-top: 20px;
       border: 1px solid #ccc;
       padding: 10px;
@@ -18,21 +18,21 @@
 <body>
   <h1>📱 포켓몬 카드 조회</h1>
 
-  <label for="qrInput">QR Hex 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: 31313935363237330a" />
+  <label for="qrInput">QR 값 수동 입력:</label>
+  <input type="text" id="qrInput" placeholder="예: 11956215673" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
   <button onclick="startScanner()">QR 인식 시작</button>
   <div id="reader"></div>
 
-  <div id="qrHexOutput"><strong>QR Hex 값:</strong> (아직 없음)</div>
+  <div id="qrTextOutput"><strong>QR 코드 인식값:</strong> (아직 없음)</div>
   <div id="result"></div>
 
   <script>
     let pokemonData = [];
 
-    // CSV 로드
+    // CSV 데이터 로드
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -50,24 +50,12 @@
         }
       });
 
-    // 문자열 → hex (fallback 처리 포함)
-    function toHex(str) {
-      let hex = '';
-      for (let i = 0; i < str.length; i++) {
-        const code = str.charCodeAt(i);
-        if (code < 32 || code > 126) {
-          hex += 'fffd';  // 보기 어려운 바이너리 바이트 대체
-        } else {
-          hex += code.toString(16).padStart(2, '0');
-        }
-      }
-      return hex;
-    }
-
-    // 포켓몬 정보 표시
-    function lookupPokemonById(qrHex) {
+    // 포켓몬 정보 조회
+    function lookupPokemonById(qrValue) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["qr_id"] === qrHex);
+      const found = pokemonData.find(p => p["qr_id"] === qrValue);
+
+      document.getElementById("qrTextOutput").innerHTML = `<strong>QR 코드 인식값:</strong> ${qrValue}`;
 
       if (found) {
         resultDiv.innerHTML = `
@@ -89,12 +77,11 @@
 
     // 수동 조회
     function lookupPokemon() {
-      const input = document.getElementById("qrInput").value.trim().toLowerCase();
-      document.getElementById("qrHexOutput").innerHTML = `<strong>QR Hex 값:</strong> ${input}`;
+      const input = document.getElementById("qrInput").value.trim();
       lookupPokemonById(input);
     }
 
-    // 카메라 QR 스캔
+    // QR 스캐너 시작
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -106,13 +93,14 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              const hex = toHex(decodedText);
-              document.getElementById("qrHexOutput").innerHTML = `<strong>QR Hex 값:</strong> ${hex}`;
-              lookupPokemonById(hex);
+              const value = decodedText.trim();
+              lookupPokemonById(value);
             },
-            err => {}
+            err => {
+              document.getElementById("qrTextOutput").innerHTML = "QR 인식 실패: " + err;
+            }
           ).catch(err => {
-            console.error("카메라 시작 실패", err);
+            document.getElementById("qrTextOutput").innerHTML = "카메라 시작 실패: " + err;
           });
         }
       });
