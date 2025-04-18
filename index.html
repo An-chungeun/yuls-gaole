@@ -14,8 +14,8 @@
 <body>
   <h1>📱 포켓몬 카드 조회</h1>
 
-  <label for="qrInput">카드 ID 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: CP(05-028) KO" />
+  <label for="qrInput">QR Base64 수동 입력:</label>
+  <input type="text" id="qrInput" placeholder="예: KSnCqsbsmKXrpG..." />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -27,11 +27,11 @@
   <script>
     let pokemonData = [];
 
-    // CSV 로드
+    // CSV 불러오기
     fetch("data.csv")
-      .then(response => response.text())
+      .then(res => res.text())
       .then(csv => {
-        const lines = csv.split("\n");
+        const lines = csv.trim().split("\n");
         const headers = lines[0].split(",");
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i].split(",");
@@ -45,46 +45,53 @@
         }
       });
 
-    function lookupPokemonById(id) {
+    // 포켓몬 정보 찾기
+    function lookupPokemonById(qrBase64) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["카드ID"] === id);
+      const found = pokemonData.find(p => p["qr_id"] === qrBase64);
 
       if (found) {
         resultDiv.innerHTML = `
-          <h2>${found["이름"]}</h2>
+          <h2>${found["name"]}</h2>
           <ul>
-            <li><strong>에너지:</strong> ${found["에너지"]}</li>
-            <li><strong>기술:</strong> ${found["기술"]}</li>
-            <li><strong>HP:</strong> ${found["HP"]}</li>
-            <li><strong>공격:</strong> ${found["특수공격"]}</li>
-            <li><strong>방어:</strong> ${found["방어"]}</li>
-            <li><strong>특수방어:</strong> ${found["특수방어"]}</li>
-            <li><strong>스피드:</strong> ${found["스피드"]}</li>
+            <li><strong>타입:</strong> ${found["type"]}</li>
+            <li><strong>기술:</strong> ${found["skill"]}</li>
+            <li><strong>HP:</strong> ${found["hp"]}</li>
+            <li><strong>공격:</strong> ${found["atk"]}</li>
+            <li><strong>방어:</strong> ${found["def"]}</li>
+            <li><strong>특수방어:</strong> ${found["spdef"]}</li>
+            <li><strong>스피드:</strong> ${found["spd"]}</li>
           </ul>
         `;
       } else {
-        resultDiv.innerHTML = `<p>일치하는 포켓몬 정보를 찾을 수 없습니다.</p>`;
+        resultDiv.innerHTML = `<p>⚠️ 포켓몬 정보를 찾을 수 없습니다.</p>`;
       }
     }
 
+    // 수동 조회
     function lookupPokemon() {
       const input = document.getElementById("qrInput").value.trim();
       lookupPokemonById(input);
     }
 
+    // 카메라 QR 스캔 시작
     function startScanner() {
-      const qrCodeScanner = new Html5Qrcode("reader");
+      const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length) {
-          qrCodeScanner.start(
+          scanner.start(
             { facingMode: "environment" },
             { fps: 10, qrbox: 250 },
             (decodedText, decodedResult) => {
-              qrCodeScanner.stop();
+              scanner.stop();
               document.getElementById("reader").innerHTML = "";
-              lookupPokemonById(decodedText.trim());
+
+              // Base64 인코딩
+              const base64 = btoa(unescape(encodeURIComponent(decodedText)));
+              console.log("QR Base64:", base64);
+              lookupPokemonById(base64);
             },
-            errorMessage => { /* 인식 실패는 무시 */ }
+            err => {}
           ).catch(err => {
             console.error("카메라 시작 실패", err);
           });
