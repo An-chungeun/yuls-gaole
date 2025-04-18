@@ -20,7 +20,7 @@
   <h1>📱 포켓몬 카드 조회</h1>
 
   <label for="qrInput">QR Hex 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: 3131393536323733" />
+  <input type="text" id="qrInput" placeholder="예: 1234" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -39,7 +39,7 @@
   <script>
     let pokemonData = [];
 
-    // CSV 불러오기
+    // CSV 로드
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -90,12 +90,6 @@
       ).join('');
     }
 
-    function toHexFromString(str) {
-      return Array.from(str).map(c =>
-        c.charCodeAt(0).toString(16).padStart(2, '0')
-      ).join('');
-    }
-
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -112,19 +106,25 @@
 
               if (decodedResult.binaryData && decodedResult.binaryData.length > 0) {
                 hex = toHexFromBinary(decodedResult.binaryData);
-                method = "binaryData 기반";
+                method = "✅ binaryData 기반 (정상)";
               } else {
-                hex = toHexFromString(decodedText);
-                method = "decodedText 기반 (대체)";
+                hex = "❌ binaryData를 읽을 수 없습니다.";
+                method = "⚠️ 변환 실패 (fffd 방지)";
               }
 
               document.getElementById("hexValue").textContent = hex;
               document.getElementById("method").textContent = "변환 방식: " + method;
 
-              lookupPokemonById(hex);
+              if (!hex.startsWith("❌")) {
+                lookupPokemonById(hex);
+              } else {
+                document.getElementById("result").innerHTML = "<p>QR 코드를 다시 인식해주세요.</p>";
+              }
             },
             err => {
               document.getElementById("hexValue").textContent = "QR 인식 실패: " + err;
+              document.getElementById("method").textContent = "";
+              document.getElementById("result").innerHTML = "";
             }
           ).catch(err => {
             document.getElementById("hexValue").textContent = "카메라 시작 실패: " + err;
