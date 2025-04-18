@@ -12,6 +12,17 @@
     }
     label, input, button { display: block; margin: 10px 0; }
     #reader { width: 300px; margin-top: 20px; }
+    .stat-bar { background: #eee; height: 20px; margin: 5px 0; position: relative; border-radius: 10px; }
+    .stat-value {
+      background: #4caf50;
+      height: 100%;
+      color: white;
+      text-align: right;
+      padding-right: 5px;
+      border-radius: 10px;
+    }
+    .stat-label { font-weight: bold; }
+    img.pokemon-img { max-width: 150px; margin: 10px 0; }
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -19,7 +30,7 @@
   <h1>📱 포켓몬 카드 조회</h1>
 
   <label for="qrInput">QR 값 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: Eevee1234" />
+  <input type="text" id="qrInput" placeholder="예: Eevee123" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -32,7 +43,14 @@
   <script>
     let pokemonData = [];
 
-    // CSV 데이터 로드
+    const typeWeaknesses = {
+      "노말": ["격투"],
+      "불꽃": ["물", "땅", "바위"],
+      "물": ["풀", "전기"],
+      "풀": ["불꽃", "얼음", "비행", "벌레"],
+      // 필요한 타입 추가 가능
+    };
+
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -50,9 +68,13 @@
         }
       });
 
-    // 알파벳/숫자만 남기고 모두 제거하는 정제 함수
     function keepOnlyLettersAndNumbers(str) {
-      return str.replace(/[^a-zA-Z0-9]/g, ''); // a~z, A~Z, 0~9 외 제거
+      return str.replace(/[^a-zA-Z0-9]/g, '');
+    }
+
+    function getImageUrl(name) {
+      const encoded = encodeURIComponent(name);
+      return `https://img.pokemondb.net/artwork/${encoded.toLowerCase()}.jpg`;
     }
 
     function lookupPokemonById(rawValue) {
@@ -63,17 +85,22 @@
       const resultDiv = document.getElementById("result");
 
       if (found) {
+        const weaknesses = typeWeaknesses[found["type"]] || ["정보 없음"];
+        const stats = ['hp','atk','def','spdef','spd'];
+        let statHtml = stats.map(stat => {
+          const value = parseInt(found[stat], 10);
+          const width = Math.min(value, 150);
+          return `<div class="stat-label">${stat.toUpperCase()}</div>
+                  <div class="stat-bar"><div class="stat-value" style="width:${width}px">${value}</div></div>`;
+        }).join('');
+
         resultDiv.innerHTML = `
           <h2>${found["name"]}</h2>
-          <ul>
-            <li><strong>타입:</strong> ${found["type"]}</li>
-            <li><strong>기술:</strong> ${found["skill"]}</li>
-            <li><strong>HP:</strong> ${found["hp"]}</li>
-            <li><strong>공격:</strong> ${found["atk"]}</li>
-            <li><strong>방어:</strong> ${found["def"]}</li>
-            <li><strong>특수방어:</strong> ${found["spdef"]}</li>
-            <li><strong>스피드:</strong> ${found["spd"]}</li>
-          </ul>
+          <img class="pokemon-img" src="${getImageUrl(found["name"])}" alt="${found["name"]}" onerror="this.style.display='none'">
+          <p><strong>타입:</strong> ${found["type"]}</p>
+          <p><strong>기술:</strong> ${found["skill"]}</p>
+          <p><strong>약점:</strong> ${weaknesses.join(", ")}</p>
+          ${statHtml}
         `;
       } else {
         resultDiv.innerHTML = `<p>⚠️ 포켓몬 정보를 찾을 수 없습니다.</p>`;
@@ -95,12 +122,9 @@
             (decodedText, decodedResult) => {
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
-
               lookupPokemonById(decodedText);
             },
-            err => {
-              document.getElementById("qrTextOutput").innerHTML = "QR 인식 실패: " + err;
-            }
+            err => {}
           ).catch(err => {
             document.getElementById("qrTextOutput").innerHTML = "카메라 시작 실패: " + err;
           });
