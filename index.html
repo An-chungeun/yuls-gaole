@@ -5,7 +5,11 @@
   <title>포켓몬 카드 정보 조회</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    #result, #hexOutput {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
     label, input { display: block; margin-bottom: 10px; }
     #reader { width: 300px; margin-top: 20px; }
   </style>
@@ -21,6 +25,9 @@
   <h3>또는 QR 코드 스캔:</h3>
   <button onclick="startScanner()">QR 인식 시작</button>
   <div id="reader"></div>
+
+  <!-- ✅ QR HEX 출력창 추가 -->
+  <div id="hexOutput"><strong>📦 QR HEX 값:</strong> <span id="hexValue">스캔 시 여기에 표시됩니다</span></div>
 
   <div id="result"></div>
 
@@ -48,7 +55,7 @@
     // 포켓몬 정보 조회
     function lookupPokemonById(qrHex) {
       const resultDiv = document.getElementById("result");
-      console.log("찾는 QR HEX:", qrHex);  // ✅ 콘솔 출력 확인용
+      console.log("찾는 QR HEX:", qrHex);  // 콘솔 출력 확인
       const found = pokemonData.find(p => p["qr_id"].toLowerCase() === qrHex.toLowerCase());
 
       if (found) {
@@ -69,20 +76,18 @@
       }
     }
 
-    // 수동 조회
     function lookupPokemon() {
       const input = document.getElementById("qrInput").value.trim();
       lookupPokemonById(input);
     }
 
-    // 바이너리 → HEX 변환
+    // 이진 → HEX 변환 함수
     function toHexFromBinary(binaryArray) {
       return Array.from(binaryArray, byte =>
         byte.toString(16).padStart(2, '0')
       ).join('');
     }
 
-    // QR 스캔 시작
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -97,7 +102,11 @@
               const binary = decodedResult.binaryData;
               const hex = toHexFromBinary(binary);
 
-              console.log("📦 QR 코드 HEX 값:", hex);  // ✅ 콘솔에 hex 찍힘
+              // ✅ 콘솔 + 화면에 hex 출력
+              console.log("📦 QR 코드 HEX:", hex);
+              document.getElementById("hexValue").textContent = hex;
+
+              // 포켓몬 정보 조회
               lookupPokemonById(hex);
             },
             err => {
