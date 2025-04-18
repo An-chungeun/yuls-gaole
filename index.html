@@ -14,8 +14,8 @@
 <body>
   <h1>📱 포켓몬 카드 조회</h1>
 
-  <label for="qrInput">QR Base64 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: KSnCqsbsmKXrpG..." />
+  <label for="qrInput">QR Hex 수동 입력:</label>
+  <input type="text" id="qrInput" placeholder="예: 31313935363237330a" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -27,7 +27,7 @@
   <script>
     let pokemonData = [];
 
-    // CSV 불러오기
+    // CSV 로드
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -45,10 +45,15 @@
         }
       });
 
-    // 포켓몬 정보 찾기
-    function lookupPokemonById(qrBase64) {
+    // 문자열을 hex 문자열로 변환
+    function toHex(str) {
+      return Array.from(str, c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    }
+
+    // 포켓몬 정보 조회
+    function lookupPokemonById(qrHex) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["qr_id"] === qrBase64);
+      const found = pokemonData.find(p => p["qr_id"] === qrHex);
 
       if (found) {
         resultDiv.innerHTML = `
@@ -70,11 +75,11 @@
 
     // 수동 조회
     function lookupPokemon() {
-      const input = document.getElementById("qrInput").value.trim();
+      const input = document.getElementById("qrInput").value.trim().toLowerCase();
       lookupPokemonById(input);
     }
 
-    // 카메라 QR 스캔 시작
+    // QR 코드 스캔
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -86,10 +91,9 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              // Base64 인코딩
-              const base64 = btoa(unescape(encodeURIComponent(decodedText)));
-              console.log("QR Base64:", base64);
-              lookupPokemonById(base64);
+              const hex = toHex(decodedText);
+              console.log("QR Hex:", hex);
+              lookupPokemonById(hex);
             },
             err => {}
           ).catch(err => {
