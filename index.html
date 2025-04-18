@@ -12,6 +12,7 @@
     }
     label, input { display: block; margin-bottom: 10px; }
     #reader { width: 300px; margin-top: 20px; }
+    .hex-label { font-weight: bold; margin-top: 1em; }
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -26,15 +27,19 @@
   <button onclick="startScanner()">QR 인식 시작</button>
   <div id="reader"></div>
 
-  <!-- ✅ QR HEX 출력창 추가 -->
-  <div id="hexOutput"><strong>📦 QR HEX 값:</strong> <span id="hexValue">스캔 시 여기에 표시됩니다</span></div>
+  <!-- ✅ QR HEX 출력칸 추가 -->
+  <div id="hexOutput">
+    <p class="hex-label">📦 QR HEX 값:</p>
+    <p id="hexValue">스캔 시 여기에 HEX 값이 표시됩니다</p>
+    <p id="method">변환 방식: -</p>
+  </div>
 
   <div id="result"></div>
 
   <script>
     let pokemonData = [];
 
-    // CSV 로드
+    // CSV 불러오기
     fetch("data.csv")
       .then(res => res.text())
       .then(csv => {
@@ -52,10 +57,8 @@
         }
       });
 
-    // 포켓몬 정보 조회
     function lookupPokemonById(qrHex) {
       const resultDiv = document.getElementById("result");
-      console.log("찾는 QR HEX:", qrHex);  // 콘솔 출력 확인
       const found = pokemonData.find(p => p["qr_id"].toLowerCase() === qrHex.toLowerCase());
 
       if (found) {
@@ -81,10 +84,15 @@
       lookupPokemonById(input);
     }
 
-    // 이진 → HEX 변환 함수
     function toHexFromBinary(binaryArray) {
       return Array.from(binaryArray, byte =>
         byte.toString(16).padStart(2, '0')
+      ).join('');
+    }
+
+    function toHexFromString(str) {
+      return Array.from(str).map(c =>
+        c.charCodeAt(0).toString(16).padStart(2, '0')
       ).join('');
     }
 
@@ -99,21 +107,27 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              const binary = decodedResult.binaryData;
-              const hex = toHexFromBinary(binary);
+              let hex = "";
+              let method = "";
 
-              // ✅ 콘솔 + 화면에 hex 출력
-              console.log("📦 QR 코드 HEX:", hex);
+              if (decodedResult.binaryData && decodedResult.binaryData.length > 0) {
+                hex = toHexFromBinary(decodedResult.binaryData);
+                method = "binaryData 기반";
+              } else {
+                hex = toHexFromString(decodedText);
+                method = "decodedText 기반 (대체)";
+              }
+
               document.getElementById("hexValue").textContent = hex;
+              document.getElementById("method").textContent = "변환 방식: " + method;
 
-              // 포켓몬 정보 조회
               lookupPokemonById(hex);
             },
             err => {
-              console.warn("QR 인식 실패:", err);
+              document.getElementById("hexValue").textContent = "QR 인식 실패: " + err;
             }
           ).catch(err => {
-            console.error("카메라 시작 실패:", err);
+            document.getElementById("hexValue").textContent = "카메라 시작 실패: " + err;
           });
         }
       });
