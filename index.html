@@ -34,6 +34,7 @@
     }
   </style>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <h1>📱 QR로 포켓몬 불러오기</h1>
@@ -43,29 +44,38 @@
   <div id="result" class="pokemon-card" style="display:none"></div>
 
   <script>
-    // 포켓몬 정보 데이터
-    const pokemonData = {
-      "eevee": {
-        name: "이브이",
-        code: "CP(05-028) KO",
-        energy: 1880,
-        move: "스피드스타",
-        type: "노말",
-        stats: {
-          HP: 106,
-          특수공격: 46,
-          방어: 51,
-          특수방어: 64,
-          스피드: 55
-        },
-        image: "images/ev.jpg"
-      }
-    };
+    const pokemonData = {};
+    const qrToPokemonId = {};
 
-    // QR Base64 → 포켓몬 키 매핑
-    const qrToPokemonId = {
-      "KSnCqsbsmKXrpGzrpqw8ruwgXFxcp7AZeyrsn6snNSXsnYD8r2gvrrGmrr3ZUiBVxJTtCgrDsnVq8PGVSWiRaJJabzjqsKHsiGzssnFbcuwTQpab3Azc3NpyKTrpqty4reuwqA==": "eevee"
-    };
+    // CSV 파일 불러와서 데이터 파싱
+    fetch('gaoleQR.csv')
+      .then(response => response.text())
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          complete: function(results) {
+            results.data.forEach(row => {
+              qrToPokemonId[row.qr] = row.engname;
+
+              pokemonData[row.engname] = {
+                name: row.name,
+                code: row.code,
+                energy: parseInt(row.energy),
+                move: row.move,
+                type: row.type,
+                stats: {
+                  HP: parseInt(row.hp),
+                  특수공격: parseInt(row.spa),
+                  방어: parseInt(row.def),
+                  특수방어: parseInt(row.spd),
+                  스피드: parseInt(row.spe)
+                },
+                image: row.img
+              };
+            });
+          }
+        });
+      });
 
     // 포켓몬 정보 표시
     function showPokemon(key) {
@@ -88,9 +98,9 @@
       `;
     }
 
-    // QR 결과 → Base64 → 포켓몬 키 매칭
+    // QR → 포켓몬 표시
     function showPokemonByQR(qrData) {
-      const encoded = btoa(unescape(encodeURIComponent(qrData))); // Base64 인코딩
+      const encoded = btoa(unescape(encodeURIComponent(qrData)));
       const matchedKey = qrToPokemonId[encoded];
       if (matchedKey) {
         showPokemon(matchedKey);
