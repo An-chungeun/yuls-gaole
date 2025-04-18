@@ -19,7 +19,7 @@
   <h1>📱 포켓몬 카드 조회</h1>
 
   <label for="qrInput">QR 값 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: 11956273" />
+  <input type="text" id="qrInput" placeholder="예: test" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -50,20 +50,21 @@
         }
       });
 
-    // �, 공백, 개행 제거
-    function cleanText(str) {
+    // 문자열 정제 함수
+    function normalizeQRCodeString(str) {
       return str
-        .replace(/�/g, '')
-        .replace(/\s+/g, '')     // 공백, 개행 포함
-        .replace(/\r?\n|\r/g, ''); 
+        .normalize('NFKC')                 // 유니코드 정규화
+        .replace(/[�\r\n\t ]+/g, '')       // 깨짐 문자, 개행, 공백 제거
+        .replace(/\\+/g, '\\');            // 백슬래시 여러 개 → 하나로
     }
 
-    function lookupPokemonById(qrValue) {
+    // 포켓몬 조회
+    function lookupPokemonById(rawValue) {
       const resultDiv = document.getElementById("result");
-      const clean = cleanText(qrValue);
+      const clean = normalizeQRCodeString(rawValue);
       document.getElementById("qrTextOutput").innerHTML = `<strong>QR 코드 인식값:</strong> ${clean}`;
 
-      const found = pokemonData.find(p => p["qr_id"] === clean);
+      const found = pokemonData.find(p => normalizeQRCodeString(p["qr_id"]) === clean);
       if (found) {
         resultDiv.innerHTML = `
           <h2>${found["name"]}</h2>
@@ -82,11 +83,13 @@
       }
     }
 
+    // 수동 입력 조회
     function lookupPokemon() {
       const input = document.getElementById("qrInput").value.trim();
       lookupPokemonById(input);
     }
 
+    // QR 스캐너 시작
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -98,8 +101,7 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              const cleanValue = cleanText(decodedText);
-              lookupPokemonById(cleanValue);
+              lookupPokemonById(decodedText);
             },
             err => {
               document.getElementById("qrTextOutput").innerHTML = "QR 인식 실패: " + err;
