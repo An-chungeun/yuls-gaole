@@ -30,7 +30,7 @@
   <h1>📱 포켓몬 카드 조회</h1>
 
   <label for="qrInput">QR 값 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: Eevee123" />
+  <input type="text" id="qrInput" placeholder="예: test" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
@@ -86,17 +86,24 @@
 
       if (found) {
         const weaknesses = typeWeaknesses[found["type"]] || ["정보 없음"];
-        const stats = ['hp','atk','def','spdef','spd'];
+        const stats = [
+          { key: 'hp', label: '체력' },
+          { key: 'atk', label: '공격' },
+          { key: 'def', label: '방어' },
+          { key: 'spdef', label: '특수방어' },
+          { key: 'spd', label: '스피드' }
+        ];
+
         let statHtml = stats.map(stat => {
-          const value = parseInt(found[stat], 10);
+          const value = parseInt(found[stat.key], 10);
           const width = Math.min(value, 150);
-          return `<div class="stat-label">${stat.toUpperCase()}</div>
+          return `<div class="stat-label">${stat.label}</div>
                   <div class="stat-bar"><div class="stat-value" style="width:${width}px">${value}</div></div>`;
         }).join('');
 
         resultDiv.innerHTML = `
           <h2>${found["name"]}</h2>
-          <img class="pokemon-img" src="${getImageUrl(found["name"])}" alt="${found["name"]}" onerror="this.style.display='none'">
+          <img class="pokemon-img" src="https://www.pokemonkorea.co.kr/pokedex/${encodeURIComponent(found["name"])}" alt="${found["name"]}" onerror="this.style.display='none'">
           <p><strong>타입:</strong> ${found["type"]}</p>
           <p><strong>기술:</strong> ${found["skill"]}</p>
           <p><strong>약점:</strong> ${weaknesses.join(", ")}</p>
