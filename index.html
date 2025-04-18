@@ -9,12 +9,13 @@
       text-align: center;
       background-color: #f2f2f2;
     }
-    .scanner {
+    .scanner, .tool {
       margin: 20px auto;
       max-width: 400px;
     }
     #reader {
       width: 100%;
+      margin-top: 10px;
     }
     .pokemon-card {
       margin: 20px auto;
@@ -39,15 +40,16 @@
 <body>
   <h1>📱 QR로 포켓몬 불러오기</h1>
   <div class="scanner">
-    <div id="reader"></div>
+    <button onclick="startScanner()">QR 인식 시작</button>
+    <div id="reader" style="display:none;"></div>
   </div>
   <div id="result" class="pokemon-card" style="display:none"></div>
 
   <script>
     const pokemonData = {};
     const qrToPokemonId = {};
+    let html5QrCode;
 
-    // CSV 파일 불러와서 데이터 파싱
     fetch('gaoleQR.csv')
       .then(response => response.text())
       .then(csvText => {
@@ -56,7 +58,6 @@
           complete: function(results) {
             results.data.forEach(row => {
               qrToPokemonId[row.qr] = row.engname;
-
               pokemonData[row.engname] = {
                 name: row.name,
                 code: row.code,
@@ -77,7 +78,6 @@
         });
       });
 
-    // 포켓몬 정보 표시
     function showPokemon(key) {
       const poke = pokemonData[key];
       if (!poke) return;
@@ -98,7 +98,6 @@
       `;
     }
 
-    // QR → 포켓몬 표시
     function showPokemonByQR(qrData) {
       const encoded = btoa(unescape(encodeURIComponent(qrData)));
       const matchedKey = qrToPokemonId[encoded];
@@ -110,54 +109,32 @@
       }
     }
 
-    // QR 스캐너 실행
-    const html5QrCode = new Html5Qrcode("reader");
+    function startScanner() {
+      const reader = document.getElementById("reader");
+      reader.style.display = "block";
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          qrCodeMessage => {
-            console.log("QR Code detected:", qrCodeMessage);
-            showPokemonByQR(qrCodeMessage.trim());
-            html5QrCode.stop();
-          },
-          errorMessage => {
-            // 인식 실패는 무시
-          }
-        ).catch(err => console.error("QR Start Error", err));
-      }
-    }).catch(err => console.error("Camera Error", err));
+      html5QrCode = new Html5Qrcode("reader");
+
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+          html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            },
+            qrCodeMessage => {
+              showPokemonByQR(qrCodeMessage.trim());
+              html5QrCode.stop();
+              reader.style.display = "none";
+            },
+            errorMessage => {
+              // 인식 실패 무시
+            }
+          ).catch(err => console.error("QR Start Error", err));
+        }
+      }).catch(err => console.error("Camera Error", err));
+    }
   </script>
 </body>
 </html>
-
-
-<!-- Base64 변환기 UI -->
-<div style="margin-top: 40px;">
-  <h2>🔧 QR 코드 → Base64 변환기</h2>
-  <textarea id="qrRaw" rows="4" cols="50" placeholder="QR 코드 원문을 여기에 붙여넣으세요"></textarea><br>
-  <button onclick="convertToBase64()">Base64로 변환</button>
-  <p><strong>Base64 결과:</strong></p>
-  <div id="base64Output" style="word-break: break-all; background:#fff; padding:10px; border-radius:10px; box-shadow:0 0 4px rgba(0,0,0,0.1); max-width:500px; margin:0 auto;"></div>
-</div>
-
-<script>
-  function convertToBase64() {
-    const input = document.getElementById('qrRaw').value.trim();
-    if (!input) {
-      alert("QR 코드를 입력해주세요.");
-      return;
-    }
-    try {
-      const encoded = btoa(unescape(encodeURIComponent(input)));
-      document.getElementById("base64Output").innerText = encoded;
-    } catch (e) {
-      alert("Base64 변환 중 오류 발생: " + e.message);
-    }
-  }
-</script>
