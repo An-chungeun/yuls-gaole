@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>QR 등록 툴 - 포켓몬 가오레</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    textarea, input {
+      width: 90%;
+      max-width: 600px;
+      margin: 10px auto;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      max-width: 900px;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 20px;
+      font-size: 16px;
+      border: none;
+      background: #1976d2;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📋 QR 등록 전용 툴</h1>
+
+  <textarea id="qrInput" rows="10" placeholder="QR 코드 원문을 줄 단위로 붙여넣으세요."></textarea>
+  
+  <input id="defaultMove" placeholder="기본 기술 (예: 스피드스타)" />
+  <input id="defaultType" placeholder="타입 (예: 노말)" />
+  <input id="defaultStats" placeholder="스탯 (HP,spa,def,spd,spe) 예: 106,46,51,64,55" />
+
+  <button onclick="generateTable()">QR → CSV 보기</button>
+  <div id="outputTable"></div>
+  <button onclick="downloadCSV()">CSV 다운로드</button>
+
+  <script>
+    let generatedData = [];
+
+    function generateTable() {
+      const qrLines = document.getElementById('qrInput').value.trim().split('\n');
+      const move = document.getElementById('defaultMove').value;
+      const type = document.getElementById('defaultType').value;
+      const stats = document.getElementById('defaultStats').value.split(',').map(v => v.trim());
+
+      if (stats.length !== 5) {
+        alert("스탯을 정확히 입력해주세요 (HP,spa,def,spd,spe)");
+        return;
+      }
+
+      generatedData = [];
+
+      let html = `<table>
+        <tr>
+          <th>QR(Base64)</th><th>engname</th><th>name</th><th>code</th><th>energy</th><th>move</th><th>type</th>
+          <th>hp</th><th>spa</th><th>def</th><th>spd</th><th>spe</th><th>img</th>
+        </tr>`;
+
+      qrLines.forEach((line, idx) => {
+        const base64QR = btoa(unescape(encodeURIComponent(line.trim())));
+        const engname = `poke${idx + 1}`; // 나중에 직접 수정 가능
+        const name = `포켓몬${idx + 1}`;
+        const code = `코드${idx + 1}`;
+        const energy = 1000 + idx * 10;
+        const imagePath = `images/${engname}.jpg`;
+
+        const row = {
+          qr: base64QR,
+          engname,
+          name,
+          code,
+          energy,
+          move,
+          type,
+          hp: stats[0],
+          spa: stats[1],
+          def: stats[2],
+          spd: stats[3],
+          spe: stats[4],
+          img: imagePath
+        };
+
+        generatedData.push(row);
+
+        html += `<tr>
+          <td>${base64QR}</td>
+          <td>${engname}</td>
+          <td>${name}</td>
+          <td>${code}</td>
+          <td>${energy}</td>
+          <td>${move}</td>
+          <td>${type}</td>
+          <td>${row.hp}</td>
+          <td>${row.spa}</td>
+          <td>${row.def}</td>
+          <td>${row.spd}</td>
+          <td>${row.spe}</td>
+          <td>${imagePath}</td>
+        </tr>`;
+      });
+
+      html += `</table>`;
+      document.getElementById("outputTable").innerHTML = html;
+    }
+
+    function downloadCSV() {
+      if (generatedData.length === 0) {
+        alert("먼저 데이터를 생성하세요.");
+        return;
+      }
+
+      const header = [
+        "qr","engname","name","code","energy","move","type",
+        "hp","spa","def","spd","spe","img"
+      ];
+
+      const csv = [
+        header.join(","),
+        ...generatedData.map(row => header.map(h => `"${row[h]}"`).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gaoleQR.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
