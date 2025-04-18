@@ -5,14 +5,13 @@
   <title>포켓몬 카드 정보 조회</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    #result, #hexOutput {
+    #result, #qrHexOutput {
       margin-top: 20px;
       border: 1px solid #ccc;
       padding: 10px;
     }
-    label, input { display: block; margin-bottom: 10px; }
+    label, input, button { display: block; margin: 10px 0; }
     #reader { width: 300px; margin-top: 20px; }
-    .hex-label { font-weight: bold; margin-top: 1em; }
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -20,20 +19,14 @@
   <h1>📱 포켓몬 카드 조회</h1>
 
   <label for="qrInput">QR Hex 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: 1234" />
+  <input type="text" id="qrInput" placeholder="예: 31313935363237330a" />
   <button onclick="lookupPokemon()">조회</button>
 
   <h3>또는 QR 코드 스캔:</h3>
   <button onclick="startScanner()">QR 인식 시작</button>
   <div id="reader"></div>
 
-  <!-- ✅ QR HEX 출력칸 추가 -->
-  <div id="hexOutput">
-    <p class="hex-label">📦 QR HEX 값:</p>
-    <p id="hexValue">스캔 시 여기에 HEX 값이 표시됩니다</p>
-    <p id="method">변환 방식: -</p>
-  </div>
-
+  <div id="qrHexOutput"><strong>QR Hex 값:</strong> (아직 없음)</div>
   <div id="result"></div>
 
   <script>
@@ -57,9 +50,24 @@
         }
       });
 
+    // 문자열 → hex (fallback 처리 포함)
+    function toHex(str) {
+      let hex = '';
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        if (code < 32 || code > 126) {
+          hex += 'fffd';  // 보기 어려운 바이너리 바이트 대체
+        } else {
+          hex += code.toString(16).padStart(2, '0');
+        }
+      }
+      return hex;
+    }
+
+    // 포켓몬 정보 표시
     function lookupPokemonById(qrHex) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["qr_id"].toLowerCase() === qrHex.toLowerCase());
+      const found = pokemonData.find(p => p["qr_id"] === qrHex);
 
       if (found) {
         resultDiv.innerHTML = `
@@ -79,17 +87,14 @@
       }
     }
 
+    // 수동 조회
     function lookupPokemon() {
-      const input = document.getElementById("qrInput").value.trim();
+      const input = document.getElementById("qrInput").value.trim().toLowerCase();
+      document.getElementById("qrHexOutput").innerHTML = `<strong>QR Hex 값:</strong> ${input}`;
       lookupPokemonById(input);
     }
 
-    function toHexFromBinary(binaryArray) {
-      return Array.from(binaryArray, byte =>
-        byte.toString(16).padStart(2, '0')
-      ).join('');
-    }
-
+    // 카메라 QR 스캔
     function startScanner() {
       const scanner = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devices => {
@@ -101,33 +106,13 @@
               scanner.stop();
               document.getElementById("reader").innerHTML = "";
 
-              let hex = "";
-              let method = "";
-
-              if (decodedResult.binaryData && decodedResult.binaryData.length > 0) {
-                hex = toHexFromBinary(decodedResult.binaryData);
-                method = "✅ binaryData 기반 (정상)";
-              } else {
-                hex = "❌ binaryData를 읽을 수 없습니다.";
-                method = "⚠️ 변환 실패 (fffd 방지)";
-              }
-
-              document.getElementById("hexValue").textContent = hex;
-              document.getElementById("method").textContent = "변환 방식: " + method;
-
-              if (!hex.startsWith("❌")) {
-                lookupPokemonById(hex);
-              } else {
-                document.getElementById("result").innerHTML = "<p>QR 코드를 다시 인식해주세요.</p>";
-              }
+              const hex = toHex(decodedText);
+              document.getElementById("qrHexOutput").innerHTML = `<strong>QR Hex 값:</strong> ${hex}`;
+              lookupPokemonById(hex);
             },
-            err => {
-              document.getElementById("hexValue").textContent = "QR 인식 실패: " + err;
-              document.getElementById("method").textContent = "";
-              document.getElementById("result").innerHTML = "";
-            }
+            err => {}
           ).catch(err => {
-            document.getElementById("hexValue").textContent = "카메라 시작 실패: " + err;
+            console.error("카메라 시작 실패", err);
           });
         }
       });
