@@ -59,6 +59,8 @@
   <h2>🧾 QR 등록 목록</h2>
   <div id="outputTable"></div>
   <button onclick="downloadCSV()">CSV 다운로드</button>
+  <button onclick="downloadJSON()">JSON 다운로드</button>
+  <button onclick="downloadBoth()">CSV + JSON 다운로드</button>
 
   <script>
     let qrInfoDB = {};
@@ -99,7 +101,10 @@
               if (processedCount === files.length) statusText.textContent = "완료";
             })
             .catch(err => {
-              console.warn("QR 인식 실패:", file.name);
+              const failItem = document.createElement("p");
+              failItem.style.color = "crimson";
+              failItem.textContent = "❌ 인식 실패: " + file.name;
+              document.getElementById("imageStatus").appendChild(failItem);
               processedCount++;
               if (processedCount === files.length) statusText.textContent = "완료 (일부 실패)";
             });
@@ -176,12 +181,44 @@
       a.click();
       URL.revokeObjectURL(url);
     }
+
+    // JSON 다운로드
+    function downloadJSON() {
+      const jsonObj = {};
+      registeredData.forEach(row => {
+        jsonObj[row.qr] = {
+          engname: row.engname,
+          name: row.name,
+          code: row.code,
+          energy: row.energy,
+          move: row.move,
+          type: row.type,
+          hp: row.hp,
+          spa: row.spa,
+          def: row.def,
+          spd: row.spd,
+          spe: row.spe,
+          img: row.img
+        };
+      });
+
+      const blob = new Blob([JSON.stringify(jsonObj, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gaoleQR.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 둘 다 다운로드
+    function downloadBoth() {
+      downloadCSV();
+      downloadJSON();
+    }
   </script>
 
-  <!-- QR 인식용 임시 요소 (안 보이게) -->
+  <!-- QR 인식용 임시 요소 (보이지 않게) -->
   <div id="temp-scan" style="display:none;"></div>
 </body>
-
-  <button onclick="downloadBoth()">CSV + JSON 다운로드</button>
-
 </html>
