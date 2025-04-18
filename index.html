@@ -39,6 +39,19 @@
 </head>
 <body>
   <h1>📱 QR로 포켓몬 불러오기</h1>
+  
+   <!-- 추가된 버튼 -->
+  <div class="tool">
+    <a href="qr_tool.html">
+      <button>🔧 QR 등록 툴로 이동</button>
+    </a>
+  </div>
+
+  <div class="scanner">
+    <button onclick="startScanner()">QR 인식 시작</button>
+    <div id="reader" style="display:none;"></div>
+  </div>
+  
   <div class="scanner">
     <button onclick="startScanner()">QR 인식 시작</button>
     <div id="reader" style="display:none;"></div>
