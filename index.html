@@ -7,14 +7,20 @@
     body { font-family: sans-serif; padding: 20px; }
     #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
     label, input { display: block; margin-bottom: 10px; }
+    #reader { width: 300px; margin-top: 20px; }
   </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-  <h1>포켓몬 카드 조회</h1>
+  <h1>📱 포켓몬 카드 조회</h1>
 
-  <label for="qrInput">QR 코드 (또는 카드 ID) 입력:</label>
+  <label for="qrInput">카드 ID 수동 입력:</label>
   <input type="text" id="qrInput" placeholder="예: CP(05-028) KO" />
   <button onclick="lookupPokemon()">조회</button>
+
+  <h3>또는 QR 코드 스캔:</h3>
+  <button onclick="startScanner()">QR 인식 시작</button>
+  <div id="reader"></div>
 
   <div id="result"></div>
 
@@ -39,11 +45,9 @@
         }
       });
 
-    // 조회 함수
-    function lookupPokemon() {
-      const input = document.getElementById("qrInput").value.trim();
+    function lookupPokemonById(id) {
       const resultDiv = document.getElementById("result");
-      const found = pokemonData.find(p => p["카드ID"] === input);
+      const found = pokemonData.find(p => p["카드ID"] === id);
 
       if (found) {
         resultDiv.innerHTML = `
@@ -61,6 +65,31 @@
       } else {
         resultDiv.innerHTML = `<p>일치하는 포켓몬 정보를 찾을 수 없습니다.</p>`;
       }
+    }
+
+    function lookupPokemon() {
+      const input = document.getElementById("qrInput").value.trim();
+      lookupPokemonById(input);
+    }
+
+    function startScanner() {
+      const qrCodeScanner = new Html5Qrcode("reader");
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+          qrCodeScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            (decodedText, decodedResult) => {
+              qrCodeScanner.stop();
+              document.getElementById("reader").innerHTML = "";
+              lookupPokemonById(decodedText.trim());
+            },
+            errorMessage => { /* 인식 실패는 무시 */ }
+          ).catch(err => {
+            console.error("카메라 시작 실패", err);
+          });
+        }
+      });
     }
   </script>
 </body>
