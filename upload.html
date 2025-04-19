@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR 코드 파일 업로드</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: url('https://assets.pokemon.com/static2/_ui/img/chrome/container_bg.png') repeat;
+      background-size: cover;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #ffcb05;
+      text-shadow: 2px 2px 0 #2a75bb;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      background-color: #4CAF50;
+    }
+    input[type="file"] {
+      background-color: #2196F3;
+      padding: 10px;
+    }
+    #rawOutput {
+      background: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 15px auto 0;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>QR 코드 파일 업로드</h2>
+  <input type="file" id="fileInput" accept="image/*">
+  <div id="rawOutput">QR 코드 값이 여기에 표시됩니다</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script>
+    // QR 코드 값에서 알파벳과 숫자만 추출하는 함수
+    function cleanQRText(text) {
+      return text.replace(/[^a-zA-Z0-9]/g, '');
+    }
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, canvas.width, canvas.height);
+          if (code) {
+            const cleaned = cleanQRText(code.data);
+            document.getElementById('rawOutput').textContent = `QR 코드: ${cleaned}`;
+          } else {
+            document.getElementById('rawOutput').textContent = 'QR 코드를 인식하지 못했습니다.';
+          }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
