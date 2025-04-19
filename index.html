@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>포켓몬 QR 스캐너</title>
   <style>
     body {
@@ -15,7 +15,8 @@
     video {
       width: 100%;
       max-width: 400px;
-      display: none;
+      border-radius: 8px;
+      margin-top: 10px;
     }
     .result {
       margin-top: 20px;
@@ -104,7 +105,7 @@
       const imgURL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`;
       video.style.display = 'none';
       result.innerHTML = `
-        <img src="${imgURL}" alt="${data.name}" onerror="this.src='fallback.png'" />
+        <img src="${imgURL}" alt="${data.name}" onerror="this.src='fallback.png'">
         <h3>${data.name}</h3>
         <p class="label">타입: ${data.type}</p>
         <p class="label">기술: ${data.skill}</p>
@@ -112,12 +113,10 @@
         <div class="bar-container"><div class="bar" style="width:${data.hp / 2}%"></div></div>
         <div class="label">공격: ${data.attack}</div>
         <div class="bar-container"><div class="bar" style="width:${data.attack / 2}%"></div></div>
-        ${data.sp_attack ? `<div class="label">특수공격: ${data.sp_attack}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>` : ''}
+        ${data.sp_attack ? `<div class="label">특수공격: ${data.sp_attack}</div><div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>` : ''}
         <div class="label">방어: ${data.defense}</div>
         <div class="bar-container"><div class="bar" style="width:${data.defense / 2}%"></div></div>
-        ${data.sp_defense ? `<div class="label">특수방어: ${data.sp_defense}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>` : ''}
+        ${data.sp_defense ? `<div class="label">특수방어: ${data.sp_defense}</div><div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>` : ''}
         <div class="label">스피드: ${data.speed}</div>
         <div class="bar-container"><div class="bar" style="width:${data.speed / 2}%"></div></div>
       `;
@@ -125,7 +124,13 @@
 
     async function startScan() {
       await loadCSV();
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { exact: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
       video.srcObject = stream;
       video.style.display = 'block';
       const canvas = document.createElement('canvas');
