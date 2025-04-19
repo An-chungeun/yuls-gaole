@@ -3,17 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>포켓몬 QR 스캐너</title>
+  <title>포켓몬 가오레 QR 스캐너</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
-      background: #f2f2f2;
+      background: url('https://assets.pokemon.com/static2/_ui/img/chrome/container_bg.png') repeat;
+      background-size: cover;
+      color: #333;
       text-align: center;
       padding: 20px;
     }
     h2 {
       margin-bottom: 20px;
-      color: #333;
+      color: #ffcb05;
+      text-shadow: 2px 2px 0 #2a75bb;
     }
     button, input[type="file"] {
       padding: 10px 20px;
@@ -38,10 +41,10 @@
       max-width: 400px;
     }
     .card {
-      background: white;
+      background: rgba(255, 255, 255, 0.95);
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       margin-top: 20px;
       max-width: 400px;
       margin-left: auto;
@@ -63,6 +66,8 @@
     .bar {
       height: 10px;
       background: #4caf50;
+      width: 0;
+      transition: width 0.8s ease-in-out;
     }
     .label {
       font-weight: bold;
@@ -79,7 +84,7 @@
   </style>
 </head>
 <body>
-  <h2>포켓몬 QR 스캐너</h2>
+  <h2>🎮 포켓몬 가오레 QR 스캐너</h2>
   <button onclick="startScan()">📷 카메라로 스캔</button>
   <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
@@ -122,23 +127,31 @@
         <div class="label">기술: ${data.skill || '정보 없음'}</div>
 
         <div class="label">체력: ${data.hp}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.hp / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.hp / 2}%"></div></div>
 
         <div class="label">공격: ${data.attack}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.attack / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.attack / 2}%"></div></div>
 
         <div class="label">특수공격: ${data.sp_attack}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.sp_attack / 2}%"></div></div>
 
         <div class="label">방어: ${data.defense}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.defense / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.defense / 2}%"></div></div>
 
         <div class="label">특수방어: ${data.sp_defense}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.sp_defense / 2}%"></div></div>
 
         <div class="label">스피드: ${data.speed}</div>
-        <div class="bar-container"><div class="bar" style="width:${data.speed / 2}%"></div></div>
+        <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.speed / 2}%"></div></div>
       `;
+
+      // Animate bars
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.bar').forEach(bar => {
+          const target = bar.getAttribute('data-width');
+          bar.style.width = target;
+        });
+      });
     }
 
     async function startScan() {
