@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포켓몬 QR 스캐너</title>
+  <title>포켓몬 QR 스캐너2</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -55,7 +55,7 @@
       max-width: 400px;
       text-align: center;
     }
-    button {
+    button, input[type="file"] {
       margin-top: 15px;
       padding: 10px 20px;
       font-size: 16px;
@@ -65,11 +65,15 @@
       border-radius: 6px;
       cursor: pointer;
     }
+    input[type="file"] {
+      background-color: #2196F3;
+    }
   </style>
 </head>
 <body>
   <h2>포켓몬 QR 스캐너</h2>
   <button onclick="startScan()">카메라로 스캔</button>
+  <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
   <div id="rawOutput">QR 코드 인식값이 여기에 표시됩니다</div>
   <div class="result" id="result"></div>
@@ -160,7 +164,40 @@
       }, 300);
     }
 
-    // ✅ URL 파라미터를 통한 QR 자동 인식 지원
+    // 이미지 업로드 QR 인식 처리
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      await loadCSV();
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, canvas.width, canvas.height);
+          if (code) {
+            const cleaned = cleanQRText(code.data);
+            rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+            const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
+            if (match) {
+              displayPokemon(match);
+            } else {
+              rawOutput.textContent = 'QR 인식은 성공했지만, 일치하는 포켓몬 정보를 찾을 수 없습니다.';
+            }
+          } else {
+            rawOutput.textContent = 'QR 코드를 인식하지 못했습니다.';
+          }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // URL 파라미터 통한 자동 조회 처리
     window.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
       const qrParam = params.get('qr');
