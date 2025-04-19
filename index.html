@@ -15,6 +15,7 @@
     video {
       width: 100%;
       max-width: 400px;
+      display: none;
     }
     .result {
       margin-top: 20px;
@@ -78,6 +79,7 @@
     const rawOutput = document.getElementById('rawOutput');
     let csvData = [];
     let scanning = false;
+    let intervalId;
 
     async function loadCSV() {
       const response = await fetch('data.csv');
@@ -99,22 +101,24 @@
     }
 
     function displayPokemon(data) {
-      const imgURL = `https://www.pokemonkorea.co.kr/image/pokedex/${encodeURIComponent(data.name)}.png`;
+      const imgURL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`;
+      video.style.display = 'none';
       result.innerHTML = `
         <img src="${imgURL}" alt="${data.name}" onerror="this.src='fallback.png'" />
         <h3>${data.name}</h3>
         <p class="label">타입: ${data.type}</p>
-        <div class="label">체력 (HP)</div>
+        <p class="label">기술: ${data.skill}</p>
+        <div class="label">체력 (HP): ${data.hp}</div>
         <div class="bar-container"><div class="bar" style="width:${data.hp / 2}%"></div></div>
-        <div class="label">공격</div>
+        <div class="label">공격: ${data.attack}</div>
         <div class="bar-container"><div class="bar" style="width:${data.attack / 2}%"></div></div>
-        ${data.sp_attack ? `<div class="label">특수공격</div>
+        ${data.sp_attack ? `<div class="label">특수공격: ${data.sp_attack}</div>
         <div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>` : ''}
-        <div class="label">방어</div>
+        <div class="label">방어: ${data.defense}</div>
         <div class="bar-container"><div class="bar" style="width:${data.defense / 2}%"></div></div>
-        ${data.sp_defense ? `<div class="label">특수방어</div>
+        ${data.sp_defense ? `<div class="label">특수방어: ${data.sp_defense}</div>
         <div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>` : ''}
-        <div class="label">스피드</div>
+        <div class="label">스피드: ${data.speed}</div>
         <div class="bar-container"><div class="bar" style="width:${data.speed / 2}%"></div></div>
       `;
     }
@@ -123,11 +127,12 @@
       await loadCSV();
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
       video.srcObject = stream;
+      video.style.display = 'block';
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       scanning = true;
 
-      setInterval(() => {
+      intervalId = setInterval(() => {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           canvas.width = video.videoWidth;
@@ -140,12 +145,13 @@
             rawOutput.textContent = `정리된 QR값: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) {
-              displayPokemon(match);
+              clearInterval(intervalId);
               scanning = false;
+              displayPokemon(match);
             }
           }
         }
-      }, 1000);
+      }, 300);
     }
   </script>
 </body>
