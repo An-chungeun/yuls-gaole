@@ -84,7 +84,7 @@
   </style>
 </head>
 <body>
-  <h2>🎮 포켓몬 가오레 QR 스캐너2</h2>
+  <h2>🎮 포켓몬 가오레 QR 스캐너3</h2>
   <button onclick="startScan()">📷 카메라로 스캔</button>
   <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
@@ -172,7 +172,11 @@
           const code = jsQR(imageData.data, canvas.width, canvas.height);
           if (code) {
             const cleaned = cleanQRText(code.data);
-            rawOutput.textContent = `QR 코드: ${cleaned}`;
+            rawOutput.innerHTML = `
+              QR 인식은 성공했지만, 일치하는 포켓몬 정보를 찾을 수 없습니다.<br>
+                <strong>QR 코드:</strong> ${cleaned}
+            `;
+
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) {
               clearInterval(intervalId);
