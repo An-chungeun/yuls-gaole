@@ -3,140 +3,150 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>포켓몬 QR 인식기</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>포켓몬 QR 스캐너</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 2rem;
+      font-family: 'Arial', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 20px;
     }
-    h1 {
-      color: #333;
-    }
-    #reader {
-      width: 300px;
-      margin-bottom: 1rem;
-    }
-    .card {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 2rem;
-      text-align: center;
+    video {
+      width: 100%;
       max-width: 400px;
     }
-    .pokemon-img {
+    .result {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .result img {
       width: 150px;
-      height: auto;
-      margin-bottom: 1rem;
+      height: 150px;
+      object-fit: contain;
+      border-radius: 10px;
     }
-    .info {
-      margin-top: 1rem;
+    .bar {
+      height: 12px;
+      background-color: #4caf50;
+      border-radius: 6px;
+      margin: 4px 0;
     }
-    .stat {
-      margin: 0.5rem 0;
+    .bar-container {
+      width: 100%;
+      max-width: 300px;
+      background-color: #eee;
+      border-radius: 6px;
     }
     .label {
       font-weight: bold;
-      color: #666;
+    }
+    #rawOutput {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+      background: #f0f0f0;
+      padding: 8px;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>포켓몬 QR 인식기</h1>
-  <div id="reader"></div>
-  <div class="card" id="pokemon-card" style="display:none;">
-    <img id="pokemon-image" class="pokemon-img" src="" alt="포켓몬 이미지">
-    <div class="info">
-      <div class="stat label" id="pokemon-name"></div>
-      <div class="stat" id="pokemon-type"></div>
-      <div class="stat" id="pokemon-hp"></div>
-      <div class="stat" id="pokemon-attack"></div>
-      <div class="stat" id="pokemon-defense"></div>
-      <div class="stat" id="pokemon-sp-attack" style="display:none;"></div>
-      <div class="stat" id="pokemon-sp-defense" style="display:none;"></div>
-      <div class="stat" id="pokemon-speed"></div>
-    </div>
-  </div>
+  <h2>포켓몬 QR 스캐너</h2>
+  <button onclick="startScan()">카메라 시작</button>
+  <video id="video" autoplay playsinline></video>
+  <div id="rawOutput">QR 코드 인식값이 여기에 표시됩니다</div>
+  <div class="result" id="result"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script>
-    const pokemonData = {
-      "이브이": {
-        "이름": "이브이",
-        "타입": "노말",
-        "HP": 106,
-        "공격": 46,
-        "방어": 51,
-        "특수공격": 0,
-        "특수방어": 64,
-        "스피드": 55,
-        "이미지": "https://data1.pokemonkorea.co.kr/newdata/pokedex/mid/013301.png"
-      }
-    };
+    const video = document.getElementById('video');
+    const result = document.getElementById('result');
+    const rawOutput = document.getElementById('rawOutput');
+    let csvData = [];
+    let scanning = false;
 
-    function cleanText(text) {
-      return text.replace(/[^a-zA-Z0-9가-힣]/g, '');
+    async function loadCSV() {
+      const response = await fetch('data.csv');
+      const text = await response.text();
+      const rows = text.trim().split('\n');
+      const headers = rows[0].split(',');
+      csvData = rows.slice(1).map(row => {
+        const values = row.split(',');
+        const obj = {};
+        headers.forEach((header, idx) => {
+          obj[header.trim()] = values[idx] ? values[idx].trim() : '';
+        });
+        return obj;
+      });
     }
 
-    function showPokemon(data) {
-      const card = document.getElementById('pokemon-card');
-      const name = document.getElementById('pokemon-name');
-      const type = document.getElementById('pokemon-type');
-      const hp = document.getElementById('pokemon-hp');
-      const attack = document.getElementById('pokemon-attack');
-      const defense = document.getElementById('pokemon-defense');
-      const spAttack = document.getElementById('pokemon-sp-attack');
-      const spDefense = document.getElementById('pokemon-sp-defense');
-      const speed = document.getElementById('pokemon-speed');
-      const img = document.getElementById('pokemon-image');
-
-      name.textContent = `이름: ${data.이름}`;
-      type.textContent = `타입: ${data.타입}`;
-      hp.textContent = `체력: ${data.HP}`;
-      attack.textContent = `공격: ${data.공격}`;
-      defense.textContent = `방어: ${data.방어}`;
-      speed.textContent = `스피드: ${data.스피드}`;
-      img.src = data.이미지;
-
-      if (data["특수공격"] && data["특수공격"] > 0) {
-        spAttack.textContent = `특수공격: ${data["특수공격"]}`;
-        spAttack.style.display = 'block';
-      } else {
-        spAttack.style.display = 'none';
-      }
-
-      if (data["특수방어"] && data["특수방어"] > 0) {
-        spDefense.textContent = `특수방어: ${data["특수방어"]}`;
-        spDefense.style.display = 'block';
-      } else {
-        spDefense.style.display = 'none';
-      }
-
-      card.style.display = 'block';
+    function cleanQRText(text) {
+      return text.replace(/[^a-zA-Z0-9]/g, '');
     }
 
-    const html5QrCode = new Html5Qrcode("reader");
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        html5QrCode.start(
-          devices[0].id,
-          { fps: 10, qrbox: 250 },
-          qrCodeMessage => {
-            const clean = cleanText(qrCodeMessage);
-            if (pokemonData[clean]) {
-              showPokemon(pokemonData[clean]);
-              html5QrCode.stop();
+    function displayPokemon(data) {
+      const imgURL = `https://www.pokemonkorea.co.kr/image/pokedex/${encodeURIComponent(data.name)}.png`;
+      result.innerHTML = `
+        <img src="${imgURL}" alt="${data.name}" onerror="this.src='fallback.png'" />
+        <h3>${data.name}</h3>
+        <p class="label">타입: ${data.type}</p>
+        <div class="label">체력 (HP)</div>
+        <div class="bar-container"><div class="bar" style="width:${data.hp / 2}%"></div></div>
+        <div class="label">공격</div>
+        <div class="bar-container"><div class="bar" style="width:${data.attack / 2}%"></div></div>
+        ${data.sp_attack ? `<div class="label">특수공격</div>
+        <div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>` : ''}
+        <div class="label">방어</div>
+        <div class="bar-container"><div class="bar" style="width:${data.defense / 2}%"></div></div>
+        ${data.sp_defense ? `<div class="label">특수방어</div>
+        <div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>` : ''}
+        <div class="label">스피드</div>
+        <div class="bar-container"><div class="bar" style="width:${data.speed / 2}%"></div></div>
+      `;
+    }
+
+    async function startScan() {
+      await loadCSV();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
+      video.srcObject = stream;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      scanning = true;
+
+      setInterval(() => {
+        if (!scanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          if (code) {
+            const cleaned = cleanQRText(code.data);
+            rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+            const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
+            if (match) {
+              displayPokemon(match);
+              scanning = false;
             }
-          },
-          errorMessage => {}
-        );
-      }
-    });
+          }
+        }
+      }, 1000);
+    }
   </script>
 </body>
 </html>
