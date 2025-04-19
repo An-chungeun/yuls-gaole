@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포켓몬 QR 스캐너</title>
+  <title>포켓몬 QR 스캐너 (2가지 방식)</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -11,6 +11,26 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+    }
+    select, button, input[type="file"] {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    select {
+      background-color: #ddd;
+      color: #333;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+    }
+    input[type="file"] {
+      background-color: #2196F3;
+      color: white;
     }
     video {
       width: 100%;
@@ -55,36 +75,29 @@
       max-width: 400px;
       text-align: center;
     }
-    button, input[type="file"] {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    input[type="file"] {
-      background-color: #2196F3;
-    }
   </style>
 </head>
 <body>
   <h2>포켓몬 QR 스캐너</h2>
+  <select id="engineSelect">
+    <option value="jsqr">jsQR 방식</option>
+    <option value="zxing">zxing-js 방식</option>
+  </select>
   <button onclick="startScan()">카메라로 스캔</button>
   <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
   <div id="rawOutput">QR 코드 인식값이 여기에 표시됩니다</div>
   <div class="result" id="result"></div>
 
+  <!-- 라이브러리들 -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script type="module">
-    import { BrowserQRCodeReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.0.10/+esm';
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
 
+  <script>
     const video = document.getElementById('video');
     const result = document.getElementById('result');
     const rawOutput = document.getElementById('rawOutput');
+    const engineSelect = document.getElementById('engineSelect');
     let csvData = [];
     let scanning = false;
     let intervalId;
@@ -129,31 +142,47 @@
       `;
     }
 
+    async function decodeWithZXing(imageDataURL) {
+      const codeReader = new ZXing.BrowserQRCodeReader();
+      try {
+        const result = await codeReader.decodeFromImageUrl(imageDataURL);
+        return result.text;
+      } catch (e) {
+        return null;
+      }
+    }
+
     async function startScan() {
       await loadCSV();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
+      const selectedEngine = engineSelect.value;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       video.srcObject = stream;
       video.style.display = 'block';
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       scanning = true;
 
-      intervalId = setInterval(() => {
+      intervalId = setInterval(async () => {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-          if (code) {
-            const cleaned = cleanQRText(code.data);
+
+          let codeText = null;
+
+          if (selectedEngine === 'jsqr') {
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code) codeText = code.data;
+          } else if (selectedEngine === 'zxing') {
+            const tempImage = new Image();
+            tempImage.src = canvas.toDataURL();
+            codeText = await decodeWithZXing(tempImage.src);
+          }
+
+          if (codeText) {
+            const cleaned = cleanQRText(codeText);
             rawOutput.textContent = `정리된 QR값: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) {
@@ -163,9 +192,10 @@
             }
           }
         }
-      }, 300);
+      }, 500);
     }
 
+    // 이미지 업로드 QR 인식
     document.getElementById('fileInput').addEventListener('change', async (e) => {
       await loadCSV();
       const file = e.target.files[0];
@@ -178,19 +208,20 @@
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          let code = jsQR(imageData.data, canvas.width, canvas.height);
-          if (!code) {
-            try {
-              const zxingReader = new BrowserQRCodeReader();
-              const result = await zxingReader.decodeFromImage(img);
-              code = { data: result.text };
-            } catch (err) {
-              code = null;
-            }
+
+          const selectedEngine = engineSelect.value;
+          let codeText = null;
+
+          if (selectedEngine === 'jsqr') {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+            if (code) codeText = code.data;
+          } else if (selectedEngine === 'zxing') {
+            codeText = await decodeWithZXing(canvas.toDataURL());
           }
-          if (code) {
-            const cleaned = cleanQRText(code.data);
+
+          if (codeText) {
+            const cleaned = cleanQRText(codeText);
             rawOutput.textContent = `정리된 QR값: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) {
@@ -207,6 +238,7 @@
       reader.readAsDataURL(file);
     });
 
+    // URL 파라미터 통한 자동 조회
     window.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
       const qrParam = params.get('qr');
