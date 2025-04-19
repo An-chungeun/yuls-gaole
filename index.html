@@ -17,6 +17,7 @@
       max-width: 400px;
       border-radius: 8px;
       margin-top: 10px;
+      display: none;
     }
     .result {
       margin-top: 20px;
@@ -68,7 +69,7 @@
 </head>
 <body>
   <h2>포켓몬 QR 스캐너</h2>
-  <button onclick="startScan()">카메라 시작</button>
+  <button onclick="startScan()">카메라로 스캔</button>
   <video id="video" autoplay playsinline></video>
   <div id="rawOutput">QR 코드 인식값이 여기에 표시됩니다</div>
   <div class="result" id="result"></div>
@@ -158,6 +159,21 @@
         }
       }, 300);
     }
+
+    // ✅ URL 파라미터를 통한 QR 자동 인식 지원
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const qrParam = params.get('qr');
+      if (qrParam) {
+        await loadCSV();
+        const cleaned = cleanQRText(qrParam);
+        const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
+        if (match) {
+          displayPokemon(match);
+          rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+        }
+      }
+    });
   </script>
 </body>
 </html>
