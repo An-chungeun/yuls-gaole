@@ -2,141 +2,141 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>포켓몬 카드 정보 조회</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #result, #qrTextOutput {
-      margin-top: 20px;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    label, input, button { display: block; margin: 10px 0; }
-    #reader { width: 300px; margin-top: 20px; }
-    .stat-bar { background: #eee; height: 20px; margin: 5px 0; position: relative; border-radius: 10px; }
-    .stat-value {
-      background: #4caf50;
-      height: 100%;
-      color: white;
-      text-align: right;
-      padding-right: 5px;
-      border-radius: 10px;
-    }
-    .stat-label { font-weight: bold; }
-    img.pokemon-img { max-width: 150px; margin: 10px 0; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포켓몬 QR 인식기</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #333;
+    }
+    #reader {
+      width: 300px;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 2rem;
+      text-align: center;
+      max-width: 400px;
+    }
+    .pokemon-img {
+      width: 150px;
+      height: auto;
+      margin-bottom: 1rem;
+    }
+    .info {
+      margin-top: 1rem;
+    }
+    .stat {
+      margin: 0.5rem 0;
+    }
+    .label {
+      font-weight: bold;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-  <h1>📱 포켓몬 카드 조회</h1>
-
-  <label for="qrInput">QR 값 수동 입력:</label>
-  <input type="text" id="qrInput" placeholder="예: Eevee123" />
-  <button onclick="lookupPokemon()">조회</button>
-
-  <h3>또는 QR 코드 스캔:</h3>
-  <button onclick="startScanner()">QR 인식 시작</button>
+  <h1>포켓몬 QR 인식기</h1>
   <div id="reader"></div>
-
-  <div id="qrTextOutput"><strong>QR 코드 인식값:</strong> (아직 없음)</div>
-  <div id="result"></div>
+  <div class="card" id="pokemon-card" style="display:none;">
+    <img id="pokemon-image" class="pokemon-img" src="" alt="포켓몬 이미지">
+    <div class="info">
+      <div class="stat label" id="pokemon-name"></div>
+      <div class="stat" id="pokemon-type"></div>
+      <div class="stat" id="pokemon-hp"></div>
+      <div class="stat" id="pokemon-attack"></div>
+      <div class="stat" id="pokemon-defense"></div>
+      <div class="stat" id="pokemon-sp-attack" style="display:none;"></div>
+      <div class="stat" id="pokemon-sp-defense" style="display:none;"></div>
+      <div class="stat" id="pokemon-speed"></div>
+    </div>
+  </div>
 
   <script>
-    let pokemonData = [];
-
-    const typeWeaknesses = {
-      "노말": ["격투"],
-      "불꽃": ["물", "땅", "바위"],
-      "물": ["풀", "전기"],
-      "풀": ["불꽃", "얼음", "비행", "벌레"],
-      // 필요한 타입 추가 가능
+    const pokemonData = {
+      "이브이": {
+        "이름": "이브이",
+        "타입": "노말",
+        "HP": 106,
+        "공격": 46,
+        "방어": 51,
+        "특수공격": 0,
+        "특수방어": 64,
+        "스피드": 55,
+        "이미지": "https://data1.pokemonkorea.co.kr/newdata/pokedex/mid/013301.png"
+      }
     };
 
-    fetch("data.csv")
-      .then(res => res.text())
-      .then(csv => {
-        const lines = csv.trim().split("\n");
-        const headers = lines[0].split(",");
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(",");
-          if (row.length === headers.length) {
-            const entry = {};
-            headers.forEach((h, idx) => {
-              entry[h.trim()] = row[idx].trim();
-            });
-            pokemonData.push(entry);
-          }
-        }
-      });
-
-    function keepOnlyLettersAndNumbers(str) {
-      return str.replace(/[^a-zA-Z0-9]/g, '');
+    function cleanText(text) {
+      return text.replace(/[^a-zA-Z0-9가-힣]/g, '');
     }
 
-    function getImageUrl(name) {
-      return `https://img.pokemondb.net/artwork/${encodeURIComponent(name.toLowerCase())}.jpg`;
-    }
+    function showPokemon(data) {
+      const card = document.getElementById('pokemon-card');
+      const name = document.getElementById('pokemon-name');
+      const type = document.getElementById('pokemon-type');
+      const hp = document.getElementById('pokemon-hp');
+      const attack = document.getElementById('pokemon-attack');
+      const defense = document.getElementById('pokemon-defense');
+      const spAttack = document.getElementById('pokemon-sp-attack');
+      const spDefense = document.getElementById('pokemon-sp-defense');
+      const speed = document.getElementById('pokemon-speed');
+      const img = document.getElementById('pokemon-image');
 
-    function createStatBar(label, value) {
-      const width = Math.min(parseInt(value, 10), 150);
-      return `<div class="stat-label">${label}</div>
-              <div class="stat-bar"><div class="stat-value" style="width:${width}px">${value}</div></div>`;
-    }
+      name.textContent = `이름: ${data.이름}`;
+      type.textContent = `타입: ${data.타입}`;
+      hp.textContent = `체력: ${data.HP}`;
+      attack.textContent = `공격: ${data.공격}`;
+      defense.textContent = `방어: ${data.방어}`;
+      speed.textContent = `스피드: ${data.스피드}`;
+      img.src = data.이미지;
 
-    function lookupPokemonById(rawValue) {
-      const clean = keepOnlyLettersAndNumbers(rawValue);
-      document.getElementById("qrTextOutput").innerHTML = `<strong>QR 코드 인식값:</strong> ${clean}`;
-
-      const found = pokemonData.find(p => keepOnlyLettersAndNumbers(p["qr_id"]) === clean);
-      const resultDiv = document.getElementById("result");
-
-      if (found) {
-        const weaknesses = typeWeaknesses[found["type"]] || ["정보 없음"];
-        let statHtml = '';
-
-        if (found["hp"]) statHtml += createStatBar("체력", found["hp"]);
-        if (found["atk"]) statHtml += createStatBar("공격", found["atk"]);
-        if (found["def"]) statHtml += createStatBar("방어", found["def"]);
-        if (found["spatk"]) statHtml += createStatBar("특수공격", found["spatk"]);
-        if (found["spdef"]) statHtml += createStatBar("특수방어", found["spdef"]);
-        if (found["spd"]) statHtml += createStatBar("스피드", found["spd"]);
-
-        resultDiv.innerHTML = `
-          <h2>${found["name"]}</h2>
-          <img class="pokemon-img" src="${getImageUrl(found["name"])}" alt="${found["name"]}" onerror="this.style.display='none'">
-          <p><strong>타입:</strong> ${found["type"]}</p>
-          <p><strong>기술:</strong> ${found["skill"]}</p>
-          <p><strong>약점:</strong> ${weaknesses.join(", ")}</p>
-          ${statHtml}
-        `;
+      if (data["특수공격"] && data["특수공격"] > 0) {
+        spAttack.textContent = `특수공격: ${data["특수공격"]}`;
+        spAttack.style.display = 'block';
       } else {
-        resultDiv.innerHTML = `<p>⚠️ 포켓몬 정보를 찾을 수 없습니다.</p>`;
+        spAttack.style.display = 'none';
       }
+
+      if (data["특수방어"] && data["특수방어"] > 0) {
+        spDefense.textContent = `특수방어: ${data["특수방어"]}`;
+        spDefense.style.display = 'block';
+      } else {
+        spDefense.style.display = 'none';
+      }
+
+      card.style.display = 'block';
     }
 
-    function lookupPokemon() {
-      const input = document.getElementById("qrInput").value.trim();
-      lookupPokemonById(input);
-    }
-
-    function startScanner() {
-      const scanner = new Html5Qrcode("reader");
-      Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-          scanner.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
-            (decodedText, decodedResult) => {
-              scanner.stop();
-              document.getElementById("reader").innerHTML = "";
-              lookupPokemonById(decodedText);
-            },
-            err => {}
-          ).catch(err => {
-            document.getElementById("qrTextOutput").innerHTML = "카메라 시작 실패: " + err;
-          });
-        }
-      });
-    }
+    const html5QrCode = new Html5Qrcode("reader");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        html5QrCode.start(
+          devices[0].id,
+          { fps: 10, qrbox: 250 },
+          qrCodeMessage => {
+            const clean = cleanText(qrCodeMessage);
+            if (pokemonData[clean]) {
+              showPokemon(pokemonData[clean]);
+              html5QrCode.stop();
+            }
+          },
+          errorMessage => {}
+        );
+      }
+    });
   </script>
 </body>
 </html>
