@@ -1,106 +1,97 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포켓몬 QR 스캐너 (2가지 방식)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>포켓몬 QR 스캐너</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: #f2f2f2;
+      text-align: center;
       padding: 20px;
     }
-    select, button, input[type="file"] {
-      margin-top: 15px;
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    button, input[type="file"] {
       padding: 10px 20px;
       font-size: 16px;
+      margin: 10px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
-    }
-    select {
-      background-color: #ddd;
-      color: #333;
+      color: white;
     }
     button {
       background-color: #4CAF50;
-      color: white;
     }
     input[type="file"] {
       background-color: #2196F3;
-      color: white;
     }
     video {
+      display: none;
+      margin-top: 15px;
+      border-radius: 8px;
       width: 100%;
       max-width: 400px;
-      border-radius: 8px;
-      margin-top: 10px;
-      display: none;
     }
-    .result {
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-top: 20px;
-      text-align: center;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .result img {
+    .card img {
       width: 150px;
       height: 150px;
       object-fit: contain;
-      border-radius: 10px;
-    }
-    .bar {
-      height: 12px;
-      background-color: #4caf50;
-      border-radius: 6px;
-      margin: 4px 0;
+      margin-bottom: 10px;
     }
     .bar-container {
-      width: 100%;
-      max-width: 300px;
-      background-color: #eee;
+      background: #ddd;
       border-radius: 6px;
+      overflow: hidden;
+      height: 10px;
+      margin-bottom: 10px;
+    }
+    .bar {
+      height: 10px;
+      background: #4caf50;
     }
     .label {
       font-weight: bold;
+      margin-top: 10px;
     }
     #rawOutput {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #333;
-      background: #f0f0f0;
-      padding: 8px;
-      border-radius: 6px;
-      width: 100%;
+      background: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 8px;
       max-width: 400px;
-      text-align: center;
+      margin: 15px auto 0;
     }
   </style>
 </head>
 <body>
   <h2>포켓몬 QR 스캐너</h2>
-  <select id="engineSelect">
-    <option value="jsqr">jsQR 방식</option>
-    <option value="zxing">zxing-js 방식</option>
-  </select>
-  <button onclick="startScan()">카메라로 스캔</button>
+  <button onclick="startScan()">📷 카메라로 스캔</button>
   <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
   <div id="rawOutput">QR 코드 인식값이 여기에 표시됩니다</div>
-  <div class="result" id="result"></div>
+  <div id="result" class="card"></div>
 
-  <!-- 라이브러리들 -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
-
   <script>
     const video = document.getElementById('video');
     const result = document.getElementById('result');
     const rawOutput = document.getElementById('rawOutput');
-    const engineSelect = document.getElementById('engineSelect');
-    let csvData = [];
-    let scanning = false;
-    let intervalId;
+    let csvData = [], scanning = false, intervalId;
 
     async function loadCSV() {
       const response = await fetch('data.csv');
@@ -111,7 +102,7 @@
         const values = row.split(',');
         const obj = {};
         headers.forEach((header, idx) => {
-          obj[header.trim()] = values[idx] ? values[idx].trim() : '';
+          obj[header.trim()] = values[idx]?.trim() || '';
         });
         return obj;
       });
@@ -127,63 +118,49 @@
       result.innerHTML = `
         <img src="${imgURL}" alt="${data.name}" onerror="this.src='fallback.png'">
         <h3>${data.name}</h3>
-        <p class="label">타입: ${data.type}</p>
-        <p class="label">기술: ${data.skill}</p>
-        <div class="label">체력 (HP): ${data.hp}</div>
+        <div class="label">타입: ${data.type}</div>
+        <div class="label">기술: ${data.skill || '정보 없음'}</div>
+
+        <div class="label">체력: ${data.hp}</div>
         <div class="bar-container"><div class="bar" style="width:${data.hp / 2}%"></div></div>
+
         <div class="label">공격: ${data.attack}</div>
         <div class="bar-container"><div class="bar" style="width:${data.attack / 2}%"></div></div>
-        ${data.sp_attack ? `<div class="label">특수공격: ${data.sp_attack}</div><div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>` : ''}
+
+        <div class="label">특수공격: ${data.sp_attack}</div>
+        <div class="bar-container"><div class="bar" style="width:${data.sp_attack / 2}%"></div></div>
+
         <div class="label">방어: ${data.defense}</div>
         <div class="bar-container"><div class="bar" style="width:${data.defense / 2}%"></div></div>
-        ${data.sp_defense ? `<div class="label">특수방어: ${data.sp_defense}</div><div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>` : ''}
+
+        <div class="label">특수방어: ${data.sp_defense}</div>
+        <div class="bar-container"><div class="bar" style="width:${data.sp_defense / 2}%"></div></div>
+
         <div class="label">스피드: ${data.speed}</div>
         <div class="bar-container"><div class="bar" style="width:${data.speed / 2}%"></div></div>
       `;
     }
 
-    async function decodeWithZXing(imageDataURL) {
-      const codeReader = new ZXing.BrowserQRCodeReader();
-      try {
-        const result = await codeReader.decodeFromImageUrl(imageDataURL);
-        return result.text;
-      } catch (e) {
-        return null;
-      }
-    }
-
     async function startScan() {
       await loadCSV();
-      const selectedEngine = engineSelect.value;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       video.srcObject = stream;
       video.style.display = 'block';
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       scanning = true;
 
-      intervalId = setInterval(async () => {
+      intervalId = setInterval(() => {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          let codeText = null;
-
-          if (selectedEngine === 'jsqr') {
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) codeText = code.data;
-          } else if (selectedEngine === 'zxing') {
-            const tempImage = new Image();
-            tempImage.src = canvas.toDataURL();
-            codeText = await decodeWithZXing(tempImage.src);
-          }
-
-          if (codeText) {
-            const cleaned = cleanQRText(codeText);
-            rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, canvas.width, canvas.height);
+          if (code) {
+            const cleaned = cleanQRText(code.data);
+            rawOutput.textContent = `QR 코드: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) {
               clearInterval(intervalId);
@@ -192,43 +169,29 @@
             }
           }
         }
-      }, 500);
+      }, 300);
     }
 
-    // 이미지 업로드 QR 인식
     document.getElementById('fileInput').addEventListener('change', async (e) => {
       await loadCSV();
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = () => {
         const img = new Image();
-        img.onload = async () => {
+        img.onload = () => {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-
-          const selectedEngine = engineSelect.value;
-          let codeText = null;
-
-          if (selectedEngine === 'jsqr') {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, canvas.width, canvas.height);
-            if (code) codeText = code.data;
-          } else if (selectedEngine === 'zxing') {
-            codeText = await decodeWithZXing(canvas.toDataURL());
-          }
-
-          if (codeText) {
-            const cleaned = cleanQRText(codeText);
-            rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, canvas.width, canvas.height);
+          if (code) {
+            const cleaned = cleanQRText(code.data);
+            rawOutput.textContent = `QR 코드: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
-            if (match) {
-              displayPokemon(match);
-            } else {
-              rawOutput.textContent = 'QR 인식은 성공했지만, 일치하는 포켓몬 정보를 찾을 수 없습니다.';
-            }
+            if (match) displayPokemon(match);
+            else rawOutput.textContent = '일치하는 포켓몬을 찾을 수 없습니다.';
           } else {
             rawOutput.textContent = 'QR 코드를 인식하지 못했습니다.';
           }
@@ -238,7 +201,6 @@
       reader.readAsDataURL(file);
     });
 
-    // URL 파라미터 통한 자동 조회
     window.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
       const qrParam = params.get('qr');
@@ -248,7 +210,7 @@
         const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
         if (match) {
           displayPokemon(match);
-          rawOutput.textContent = `정리된 QR값: ${cleaned}`;
+          rawOutput.textContent = `QR 코드: ${cleaned}`;
         }
       }
     });
