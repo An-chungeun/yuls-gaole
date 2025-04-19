@@ -84,7 +84,7 @@
   </style>
 </head>
 <body>
-  <h2>🎮 포켓몬 가오레 QR 스캐너</h2>
+  <h2>🎮 포켓몬 가오레 QR 스캐너2</h2>
   <button onclick="startScan()">📷 카메라로 스캔</button>
   <input type="file" id="fileInput" accept="image/*">
   <video id="video" autoplay playsinline></video>
@@ -145,7 +145,6 @@
         <div class="bar-container"><div class="bar" style="width:0%" data-width="${data.speed / 2}%"></div></div>
       `;
 
-      // Animate bars
       requestAnimationFrame(() => {
         document.querySelectorAll('.bar').forEach(bar => {
           const target = bar.getAttribute('data-width');
@@ -179,6 +178,8 @@
               clearInterval(intervalId);
               scanning = false;
               displayPokemon(match);
+            } else {
+              rawOutput.textContent = `QR 인식은 성공했지만, 일치하는 포켓몬을 찾을 수 없습니다.\nQR 코드: ${cleaned}`;
             }
           }
         }
@@ -201,10 +202,9 @@
           const code = jsQR(imageData.data, canvas.width, canvas.height);
           if (code) {
             const cleaned = cleanQRText(code.data);
-            rawOutput.textContent = `QR 코드: ${cleaned}`;
             const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
             if (match) displayPokemon(match);
-            else rawOutput.textContent = '일치하는 포켓몬을 찾을 수 없습니다.';
+            else rawOutput.textContent = `QR 인식은 성공했지만, 일치하는 포켓몬을 찾을 수 없습니다.\nQR 코드: ${cleaned}`;
           } else {
             rawOutput.textContent = 'QR 코드를 인식하지 못했습니다.';
           }
@@ -224,6 +224,8 @@
         if (match) {
           displayPokemon(match);
           rawOutput.textContent = `QR 코드: ${cleaned}`;
+        } else {
+          rawOutput.textContent = `일치하는 포켓몬을 찾을 수 없습니다.\nQR 코드: ${cleaned}`;
         }
       }
     });
