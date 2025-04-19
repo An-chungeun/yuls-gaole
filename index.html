@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>포켓몬 가오레 QR 스캐너</title>
+  <title>포켓몬 가오레 QR 스캐너2</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -222,22 +222,6 @@
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
-    });
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      const params = new URLSearchParams(window.location.search);
-      const qrParam = params.get('qr');
-      if (qrParam) {
-        await loadCSV();
-        const cleaned = cleanQRText(qrParam);
-        const match = csvData.find(p => cleanQRText(p.qr_id) === cleaned);
-        if (match) {
-          displayPokemon(match);
-          rawOutput.textContent = `QR 코드: ${cleaned}`;
-        } else {
-          rawOutput.textContent = `일치하는 포켓몬을 찾을 수 없습니다.\nQR 코드: ${cleaned}`;
-        }
-      }
     });
   </script>
 </body>
