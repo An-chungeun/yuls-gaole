@@ -1,4 +1,2 @@
-qr_id,name,type,skill,hp,atk,def,spatk,spdef,spd
-G5jPhyRUTWJ,이브이,노말,스피드스타,106,46,51,,64,55
-AB12CD34EF56,뮤츠,에스퍼,사이코블래스트,200,150,100,180,120,140
-XYZ123XYZ123,리자몽,불꽃,플레어드라이브,150,120,90,130,,100
+qr_id,name,id,type,skill,hp,attack,defense,sp_attack,sp_defense,speed
+G5jPhyRUTWJ,이브이,133,노말,스피드스타,55,55,50,45,65,55
